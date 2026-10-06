@@ -20,7 +20,7 @@ type CheckResult struct {
 }
 
 var (
-	ErrInvalidURL     = errors.New("invalid URL Format")
+	ErrInvalidURL     = errors.New("invalid URL format")
 	ErrInvalidTimeout = errors.New("invalid timeout value")
 )
 

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func HttpCheck(m Monitor) (CheckResult, error) {
+func HTTPCheck(m Monitor) (CheckResult, error) {
 	url := m.url.String()
 	client := http.Client{Timeout: m.timeout}
 	startTime := time.Now()

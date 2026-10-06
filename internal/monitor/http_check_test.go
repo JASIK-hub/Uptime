@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestHttpCheck(t *testing.T) {
+func TestHTTPCheck(t *testing.T) {
 	okStatus := http.StatusOK
 	serverError := http.StatusInternalServerError
 	tt := map[string]struct {
@@ -41,7 +41,7 @@ func TestHttpCheck(t *testing.T) {
 			if err != nil {
 				t.Fatalf("create monitor: %v", err)
 			}
-			got, err := HttpCheck(monitor)
+			got, err := HTTPCheck(monitor)
 			if err != nil {
 				t.Fatalf("failed to check http: %v", err)
 			}
