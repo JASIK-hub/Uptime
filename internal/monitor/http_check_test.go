@@ -1,6 +1,8 @@
 package monitor
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +12,7 @@ import (
 func TestHTTPCheck(t *testing.T) {
 	okStatus := http.StatusOK
 	serverError := http.StatusInternalServerError
+	badRequest := http.StatusBadRequest
 	tt := map[string]struct {
 		statusCode int
 		want       CheckResult
@@ -28,6 +31,13 @@ func TestHTTPCheck(t *testing.T) {
 				StatusCode: &serverError,
 			},
 		},
+		"400 statusCode": {
+			statusCode: badRequest,
+			want: CheckResult{
+				Success:    false,
+				StatusCode: &badRequest,
+			},
+		},
 	}
 
 	for name, tc := range tt {
@@ -37,7 +47,7 @@ func TestHTTPCheck(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			monitor, err := NewMonitor(ts.URL, 5*time.Second)
+			monitor, err := NewMonitor(ts.URL, time.Second)
 			if err != nil {
 				t.Fatalf("create monitor: %v", err)
 			}
@@ -64,4 +74,35 @@ func mustCheckResult(t *testing.T, got, want CheckResult) {
 	if got.Success != want.Success {
 		t.Fatalf("expected %v, got %v", want.Success, got.Success)
 	}
+}
+
+func TestHTTP_Timeout(t *testing.T) {
+	t.Run("timeout exceeded", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(60 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer ts.Close()
+		monitor, err := NewMonitor(ts.URL, 20*time.Millisecond)
+		if err != nil {
+			t.Fatalf("failed to create monitor: %v", err)
+		}
+		got, err := HTTPCheck(monitor)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("expected timeout, got %v", err)
+		}
+		if got.Duration <= 0 {
+			t.Errorf("expected duration to be more than 0")
+		}
+		if got.StartTime.IsZero() {
+			t.Errorf("expected start time to be more than 0")
+		}
+		if got.StatusCode != nil {
+			t.Errorf("expected status code to be empty")
+		}
+		if got.Success {
+			t.Errorf("expected Success=false, got true")
+		}
+
+	})
 }
