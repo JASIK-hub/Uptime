@@ -29,5 +29,4 @@ func HttpCheck(m Monitor) (CheckResult, error) {
 		StatusCode: &resp.StatusCode,
 	}
 	return result, nil
-
 }
