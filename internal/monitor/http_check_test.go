@@ -51,7 +51,7 @@ func TestHTTPCheck(t *testing.T) {
 			if err != nil {
 				t.Fatalf("create monitor: %v", err)
 			}
-			got, err := HTTPCheck(monitor)
+			got, err := HTTPCheck(context.Background(), monitor)
 			if err != nil {
 				t.Fatalf("failed to check http: %v", err)
 			}
@@ -87,21 +87,21 @@ func TestHTTP_Timeout(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create monitor: %v", err)
 		}
-		got, err := HTTPCheck(monitor)
+		got, err := HTTPCheck(context.Background(), monitor)
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("expected timeout, got %v", err)
 		}
 		if got.Duration <= 0 {
-			t.Errorf("expected duration to be more than 0")
+			t.Errorf("expected duration to be more than 0, %v:", err.Error())
 		}
 		if got.StartTime.IsZero() {
-			t.Errorf("expected start time to be more than 0")
+			t.Errorf("expected start time to be more than 0, %v:", err.Error())
 		}
 		if got.StatusCode != nil {
-			t.Errorf("expected status code to be empty")
+			t.Errorf("expected status code to be empty, %v:", err.Error())
 		}
 		if got.Success {
-			t.Errorf("expected Success=false, got true")
+			t.Errorf("expected Success=false, got true, %v:", err.Error())
 		}
 
 	})

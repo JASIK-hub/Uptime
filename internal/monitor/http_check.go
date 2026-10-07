@@ -1,16 +1,30 @@
 package monitor
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 )
 
-func HTTPCheck(m Monitor) (CheckResult, error) {
+func HTTPCheck(ctx context.Context, m Monitor) (CheckResult, error) {
 	url := m.url.String()
 	client := http.Client{Timeout: m.timeout}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return CheckResult{}, fmt.Errorf("create HTTP request: %w", err)
+	}
 	startTime := time.Now()
-	resp, err := client.Get(url)
+	resp, err := client.Do(req)
 	duration := time.Since(startTime)
+	if err != nil {
+		return CheckResult{
+			Duration:   duration,
+			Success:    false,
+			StartTime:  startTime,
+			StatusCode: nil,
+		}, fmt.Errorf("get HTTP response: %w", err)
+	}
 
 	if err != nil {
 		return CheckResult{
