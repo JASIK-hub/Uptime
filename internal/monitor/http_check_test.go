@@ -92,17 +92,46 @@ func TestHTTP_Timeout(t *testing.T) {
 			t.Fatalf("expected timeout, got %v", err)
 		}
 		if got.Duration <= 0 {
-			t.Errorf("expected duration to be more than 0, %v:", err.Error())
+			t.Errorf("expected duration to be more than 0: %v", err.Error())
 		}
 		if got.StartTime.IsZero() {
-			t.Errorf("expected start time to be more than 0, %v:", err.Error())
+			t.Errorf("expected start time to be more than 0: %v", err.Error())
 		}
 		if got.StatusCode != nil {
-			t.Errorf("expected status code to be empty, %v:", err.Error())
+			t.Errorf("expected status code to be empty: %v", err.Error())
 		}
 		if got.Success {
-			t.Errorf("expected Success=false, got true, %v:", err.Error())
+			t.Errorf("expected Success=false, got true: %v", err.Error())
 		}
 
 	})
+}
+
+func TestHTTPCheck_CanceledContext(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	monitor, err := NewMonitor(ts.URL, time.Second)
+	if err != nil {
+		t.Fatalf("failed to create monitor: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	got, err := HTTPCheck(ctx, monitor)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context to be cancelled, got :%v", err)
+	}
+	if got.Duration < 0 {
+		t.Errorf("expected non-negative Duration: %v", err.Error())
+	}
+	if got.StartTime.IsZero() {
+		t.Errorf("expected non-zero StartTime: %v", err.Error())
+	}
+	if got.StatusCode != nil {
+		t.Errorf("expected status code to be empty: %v", err.Error())
+	}
+	if got.Success {
+		t.Errorf("expected Success=false, got true: %v", err.Error())
+	}
 }
