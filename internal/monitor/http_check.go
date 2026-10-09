@@ -17,14 +17,6 @@ func HTTPCheck(ctx context.Context, m Monitor) (CheckResult, error) {
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	duration := time.Since(startTime)
-	if err != nil {
-		return CheckResult{
-			Duration:   duration,
-			Success:    false,
-			StartTime:  startTime,
-			StatusCode: nil,
-		}, fmt.Errorf("get HTTP response: %w", err)
-	}
 
 	if err != nil {
 		return CheckResult{

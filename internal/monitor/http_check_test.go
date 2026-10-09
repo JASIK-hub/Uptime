@@ -135,3 +135,54 @@ func TestHTTPCheck_CanceledContext(t *testing.T) {
 		t.Errorf("expected Success=false, got true: %v", err.Error())
 	}
 }
+
+func TestHTTPCheck_CancelContext(t *testing.T) {
+	started := make(chan struct{})
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+	}))
+	defer ts.Close()
+	monitor, err := NewMonitor(ts.URL, time.Second)
+	if err != nil {
+		t.Fatalf("failed to create monitor: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	type outcome struct {
+		result CheckResult
+		err    error
+	}
+
+	finished := make(chan outcome, 1)
+	go func() {
+		got, err := HTTPCheck(ctx, monitor)
+		finished <- outcome{result: got, err: err}
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not receive request")
+	}
+
+	cancel()
+
+	select {
+	case out := <-finished:
+		if !errors.Is(out.err, context.Canceled) {
+			t.Errorf("expected %v, got %v:", context.Canceled, out.err)
+		}
+		if out.result.Success {
+			t.Error("expected Success==false")
+		}
+		if out.result.StatusCode != nil {
+			t.Error("expected status code to be nil")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not receive request")
+
+	}
+
+}
