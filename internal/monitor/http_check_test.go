@@ -47,7 +47,7 @@ func TestHTTPCheck(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			monitor, err := NewMonitor(ts.URL, time.Second)
+			monitor, err := NewMonitor(ts.URL, time.Second, 60*time.Second)
 			if err != nil {
 				t.Fatalf("create monitor: %v", err)
 			}
@@ -83,7 +83,7 @@ func TestHTTP_Timeout(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer ts.Close()
-		monitor, err := NewMonitor(ts.URL, 20*time.Millisecond)
+		monitor, err := NewMonitor(ts.URL, 20*time.Millisecond, 60*time.Second)
 		if err != nil {
 			t.Fatalf("failed to create monitor: %v", err)
 		}
@@ -112,7 +112,7 @@ func TestHTTPCheck_CanceledContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
-	monitor, err := NewMonitor(ts.URL, time.Second)
+	monitor, err := NewMonitor(ts.URL, time.Second, 60*time.Second)
 	if err != nil {
 		t.Fatalf("failed to create monitor: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestHTTPCheck_CancelContext(t *testing.T) {
 		<-r.Context().Done()
 	}))
 	defer ts.Close()
-	monitor, err := NewMonitor(ts.URL, time.Second)
+	monitor, err := NewMonitor(ts.URL, time.Second, 60*time.Second)
 	if err != nil {
 		t.Fatalf("failed to create monitor: %v", err)
 	}

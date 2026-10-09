@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"log"
+	"net/http"
+	"uptime/internal/api"
+)
 
 func main() {
-	fmt.Println("Uptime starting")
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /monitor", api.CreateMonitor)
+
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }

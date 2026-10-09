@@ -8,8 +8,9 @@ import (
 )
 
 type Monitor struct {
-	url     url.URL
-	timeout time.Duration
+	url      url.URL
+	timeout  time.Duration
+	interval time.Duration
 }
 
 type CheckResult struct {
@@ -20,11 +21,12 @@ type CheckResult struct {
 }
 
 var (
-	ErrInvalidURL     = errors.New("invalid URL format")
-	ErrInvalidTimeout = errors.New("invalid timeout value")
+	ErrInvalidURL      = errors.New("invalid URL format")
+	ErrInvalidTimeout  = errors.New("invalid timeout value")
+	ErrInvalidInterval = errors.New("monitor interval must be positive")
 )
 
-func NewMonitor(rawURL string, timeout time.Duration) (Monitor, error) {
+func NewMonitor(rawURL string, timeout time.Duration, interval time.Duration) (Monitor, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return Monitor{}, fmt.Errorf("parse monitor URL: %w", err)
@@ -38,5 +40,8 @@ func NewMonitor(rawURL string, timeout time.Duration) (Monitor, error) {
 	if timeout <= 0 {
 		return Monitor{}, ErrInvalidTimeout
 	}
-	return Monitor{url: *u, timeout: timeout}, nil
+	if interval <= 0 {
+		return Monitor{}, ErrInvalidInterval
+	}
+	return Monitor{url: *u, timeout: timeout, interval: interval}, nil
 }
