@@ -3,6 +3,7 @@ package monitor
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"sync"
 	"time"
@@ -53,7 +54,7 @@ func NewMonitor(rawURL string, timeout time.Duration, interval time.Duration) (M
 	return Monitor{url: *u, timeout: timeout, interval: interval}, nil
 }
 
-func NewMonitorStore(m Monitor) *MonitorStore {
+func NewMonitorStore() *MonitorStore {
 	return &MonitorStore{
 		NextId:   1,
 		Monitors: make(map[int]Monitor),
@@ -67,4 +68,12 @@ func (s *MonitorStore) Add(m Monitor) int {
 	s.Monitors[id] = m
 	s.NextId++
 	return id
+}
+func (s *MonitorStore) List() map[int]Monitor {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	result := make(map[int]Monitor)
+	maps.Copy(result, s.Monitors)
+	return result
 }

@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
+	"uptime/internal/monitor"
 )
 
 type createMonitorRequest struct {
@@ -11,7 +13,17 @@ type createMonitorRequest struct {
 	TimeoutSeconds  int    `json:"timeoutSeconds"`
 }
 
-func CreateMonitor(w http.ResponseWriter, r *http.Request) {
+type MonitorHandler struct {
+	store *monitor.MonitorStore
+}
+
+func NewMonitorHandler(s *monitor.MonitorStore) *MonitorHandler {
+	return &MonitorHandler{
+		store: s,
+	}
+}
+
+func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 	var input createMonitorRequest
 
 	err := json.NewDecoder(r.Body).Decode(&input)
@@ -19,7 +31,19 @@ func CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
+	m, err := monitor.NewMonitor(input.URL, time.Duration(input.TimeoutSeconds)*time.Second, time.Duration(input.IntervalSeconds)*time.Second)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	id := h.store.Add(m)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(input)
+	json.NewEncoder(w).Encode(id)
+}
+
+func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
+	monitors := h.store.List()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(monitors)
 }
