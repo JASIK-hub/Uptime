@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"uptime/internal/api"
@@ -13,5 +14,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /monitor", handler.CreateMonitor)
 	mux.HandleFunc("GET /monitors", handler.ListMonitors)
+	fmt.Print("Server started")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

@@ -69,6 +69,7 @@ func (s *MonitorStore) Add(m Monitor) int {
 	s.NextId++
 	return id
 }
+
 func (s *MonitorStore) List() map[int]Monitor {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -76,4 +77,16 @@ func (s *MonitorStore) List() map[int]Monitor {
 	result := make(map[int]Monitor)
 	maps.Copy(result, s.Monitors)
 	return result
+}
+
+func (m Monitor) URL() string {
+	return m.url.String()
+}
+
+func (m Monitor) Interval() time.Duration {
+	return m.interval
+}
+
+func (m Monitor) Timeout() time.Duration {
+	return m.timeout
 }

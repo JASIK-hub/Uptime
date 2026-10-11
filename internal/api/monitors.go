@@ -13,6 +13,13 @@ type createMonitorRequest struct {
 	TimeoutSeconds  int    `json:"timeoutSeconds"`
 }
 
+type monitorResponse struct {
+	ID              int    `json:"id"`
+	URL             string `json:"url"`
+	IntervalSeconds int64  `json:"intervalSeconds"`
+	TimeoutSeconds  int64  `json:"timeoutSeconds"`
+}
+
 type MonitorHandler struct {
 	store *monitor.MonitorStore
 }
@@ -44,6 +51,16 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 
 func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
 	monitors := h.store.List()
+	serialized := []monitorResponse{}
+	for id, m := range monitors {
+		monitor := monitorResponse{
+			ID:              id,
+			URL:             m.URL(),
+			TimeoutSeconds:  int64(m.Timeout() / time.Second),
+			IntervalSeconds: int64(m.Interval() / time.Second),
+		}
+		serialized = append(serialized, monitor)
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(monitors)
+	json.NewEncoder(w).Encode(serialized)
 }
