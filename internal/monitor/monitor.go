@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,12 @@ type CheckResult struct {
 	StartTime  time.Time
 	StatusCode *int
 	Duration   time.Duration
+}
+
+type MonitorStore struct {
+	Monitors map[int]Monitor
+	NextId   int
+	mu       sync.Mutex
 }
 
 var (
@@ -44,4 +51,20 @@ func NewMonitor(rawURL string, timeout time.Duration, interval time.Duration) (M
 		return Monitor{}, ErrInvalidInterval
 	}
 	return Monitor{url: *u, timeout: timeout, interval: interval}, nil
+}
+
+func NewMonitorStore(m Monitor) *MonitorStore {
+	return &MonitorStore{
+		NextId:   1,
+		Monitors: make(map[int]Monitor),
+	}
+}
+
+func (s *MonitorStore) Add(m Monitor) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	id := s.NextId
+	s.Monitors[id] = m
+	s.NextId++
+	return id
 }
