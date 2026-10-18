@@ -1,0 +1,13 @@
+
+*bin/
+*.env
+
+uptime.exe
+*test.exe
+
+*.log
+*.tmp
+
+.vscode/
+.idea/
+.DS_Store

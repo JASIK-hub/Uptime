@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres17
+    container_name: uptime_postgres
+    restart: always
+    env_file: 
+      - .env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data: /var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  
