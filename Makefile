@@ -1,4 +1,6 @@
 .DEFAULT_GOAL:= help
+BINARY_NAME=bin/app.exe
+MAIN_FILE=cmd/uptime/main.go
 
 .PHONY: build run clean fmt lint test
 
@@ -10,9 +12,9 @@ help:
 	@echo "clean  - remove build output"
 
 build:
-	go build -o bin/app.exe cmd/uptime/main.go
-run:
-	go run cmd/uptime
+	go build -o $(BINARY_NAME) $(MAIN_FILE)
+run: build
+	./$(BINARY_NAME)
 lint:
 	golangci-lint run
 fmt:
