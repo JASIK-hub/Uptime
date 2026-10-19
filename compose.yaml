@@ -1,4 +1,12 @@
 services:
+  app:
+    build:
+      context: .
+      args:
+        - GO_VERSION=${GO_VERSION}
+      depends_on:
+        - postgres
+
   postgres:
     image: postgres17
     container_name: uptime_postgres

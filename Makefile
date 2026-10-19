@@ -1,4 +1,5 @@
 .DEFAULT_GOAL:= help
+
 BINARY_NAME=bin/app.exe
 MAIN_FILE=cmd/uptime/main.go
 
