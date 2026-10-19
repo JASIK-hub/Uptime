@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 	"uptime/internal/api"
+	"uptime/internal/infra/postgres"
 	"uptime/internal/monitor"
 	"uptime/internal/scheduler"
 )
@@ -19,8 +20,25 @@ func main() {
 	handler := api.NewMonitorHandler(store)
 	schedulerDone := make(chan struct{})
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	if databaseURL == "" {
+		log.Print("startup failed: DATABASE_URL is required")
+		os.Exit(1)
+	}
+	connectCtx, connectCancel := context.WithTimeout(ctx, 5*time.Second)
+	pool, err := postgres.Connect(connectCtx, databaseURL)
+	connectCancel()
+
+	if err != nil {
+		log.Printf("startup failed: %v", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+	log.Print("database connected")
 
 	go func() {
 		defer close(schedulerDone)
@@ -38,7 +56,7 @@ func main() {
 	serverErr := make(chan error, 1)
 
 	go func() {
-		fmt.Print("Server started")
+		log.Print("starting HTTP server on :8080")
 		serverErr <- server.ListenAndServe()
 	}()
 
