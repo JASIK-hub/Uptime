@@ -1,3 +1,5 @@
+include .env
+
 .DEFAULT_GOAL:= help
 
 BINARY_NAME=bin/app.exe
@@ -24,3 +26,8 @@ test:
 	go test -cover ./...
 clean: 
 	rm -rf bin/
+
+migrate-up:
+	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" up
+migrate-down:
+	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" down
