@@ -31,9 +31,6 @@ func main() {
 	pool, err := postgres.Connect(connectCtx, databaseURL)
 	connectCancel()
 
-	repository := repository.NewMonitorRepository(pool)
-	handler := api.NewMonitorHandler(repository)
-
 	if err != nil {
 		log.Printf("startup failed: %v", err)
 		os.Exit(1)
@@ -41,9 +38,14 @@ func main() {
 	defer pool.Close()
 	log.Print("database connected")
 
+	repository := repository.NewMonitorRepository(pool)
+	handler := api.NewMonitorHandler(repository)
+
+	scheduler := scheduler.NewSchedule(repository)
+
 	go func() {
 		defer close(schedulerDone)
-		scheduler.RunScheduler(ctx)
+		scheduler.Run(ctx)
 	}()
 
 	mux := http.NewServeMux()
