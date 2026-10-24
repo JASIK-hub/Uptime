@@ -25,8 +25,8 @@ func NewSchedule(l Lister) *Schedule {
 
 func (s Schedule) Run(ctx context.Context) {
 	started := make(map[int64]bool)
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
+	timer := time.NewTimer(0)
+	defer timer.Stop()
 	var wg sync.WaitGroup
 
 	currentDelay := time.Second
@@ -34,7 +34,7 @@ func (s Schedule) Run(ctx context.Context) {
 	maxDelay := time.Minute
 	for {
 		select {
-		case <-ticker.C:
+		case <-timer.C:
 			monitors, err := s.lister.List(ctx)
 
 			if err != nil {
@@ -45,13 +45,11 @@ func (s Schedule) Run(ctx context.Context) {
 				if currentDelay > maxDelay {
 					currentDelay = maxDelay
 				}
-				ticker.Reset(currentDelay)
+				timer.Reset(currentDelay)
 				continue
 			}
-			if currentDelay != baseDelay {
-				currentDelay = baseDelay
-				ticker.Reset(currentDelay)
-			}
+			currentDelay = baseDelay
+			timer.Reset(currentDelay)
 
 			for _, m := range monitors {
 				id := m.ID()
