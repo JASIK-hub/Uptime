@@ -11,15 +11,11 @@ import (
 	"time"
 	"uptime/internal/api"
 	"uptime/internal/infra/postgres"
-	"uptime/internal/monitor"
+	"uptime/internal/infra/postgres/repository"
 	"uptime/internal/scheduler"
 )
 
 func main() {
-	store := monitor.NewMonitorStore()
-	handler := api.NewMonitorHandler(store)
-	schedulerDone := make(chan struct{})
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -29,9 +25,14 @@ func main() {
 		log.Print("startup failed: DATABASE_URL is required")
 		os.Exit(1)
 	}
+	schedulerDone := make(chan struct{})
+
 	connectCtx, connectCancel := context.WithTimeout(ctx, 5*time.Second)
 	pool, err := postgres.Connect(connectCtx, databaseURL)
 	connectCancel()
+
+	repository := repository.NewMonitorRepository(pool)
+	handler := api.NewMonitorHandler(repository)
 
 	if err != nil {
 		log.Printf("startup failed: %v", err)
@@ -42,7 +43,7 @@ func main() {
 
 	go func() {
 		defer close(schedulerDone)
-		scheduler.RunScheduler(ctx, store)
+		scheduler.RunScheduler(ctx)
 	}()
 
 	mux := http.NewServeMux()

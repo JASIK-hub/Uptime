@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"uptime/internal/infra/postgres/repository"
 	"uptime/internal/monitor"
 )
 
@@ -23,12 +24,12 @@ type monitorResponse struct {
 }
 
 type MonitorHandler struct {
-	store *monitor.MonitorStore
+	repository *repository.MonitorRepository
 }
 
-func NewMonitorHandler(s *monitor.MonitorStore) *MonitorHandler {
+func NewMonitorHandler(r *repository.MonitorRepository) *MonitorHandler {
 	return &MonitorHandler{
-		store: s,
+		repository: r,
 	}
 }
 
@@ -45,14 +46,16 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	id := h.store.Add(m)
-
+	id, err := h.repository.Add(r.Context(), m)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(id)
 }
 
 func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
-	monitors := h.store.List()
+	monitors, err := h.repository.List(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 	serialized := []monitorResponse{}
 	for id, m := range monitors {
 		monitor := monitorResponse{

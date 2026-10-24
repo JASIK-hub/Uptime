@@ -3,13 +3,12 @@ package monitor
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"net/url"
-	"sync"
 	"time"
 )
 
 type Monitor struct {
+	id       int64
 	url      url.URL
 	timeout  time.Duration
 	interval time.Duration
@@ -20,12 +19,6 @@ type CheckResult struct {
 	StartTime  time.Time
 	StatusCode *int
 	Duration   time.Duration
-}
-
-type MonitorStore struct {
-	Monitors map[int]Monitor
-	NextId   int
-	mu       sync.Mutex
 }
 
 var (
@@ -54,31 +47,6 @@ func NewMonitor(rawURL string, timeout time.Duration, interval time.Duration) (M
 	return Monitor{url: *u, timeout: timeout, interval: interval}, nil
 }
 
-func NewMonitorStore() *MonitorStore {
-	return &MonitorStore{
-		NextId:   1,
-		Monitors: make(map[int]Monitor),
-	}
-}
-
-func (s *MonitorStore) Add(m Monitor) int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	id := s.NextId
-	s.Monitors[id] = m
-	s.NextId++
-	return id
-}
-
-func (s *MonitorStore) List() map[int]Monitor {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	result := make(map[int]Monitor)
-	maps.Copy(result, s.Monitors)
-	return result
-}
-
 func (m Monitor) URL() string {
 	return m.url.String()
 }
@@ -89,4 +57,21 @@ func (m Monitor) Interval() time.Duration {
 
 func (m Monitor) Timeout() time.Duration {
 	return m.timeout
+}
+
+func (m Monitor) ID() int64 {
+	return m.id
+}
+
+func RestoreMonitor(id int64, rawUrl string, timeout, interval time.Duration) (Monitor, error) {
+	u, err := url.Parse(rawUrl)
+	if err != nil {
+		return Monitor{}, fmt.Errorf("restore monitor parse url: %w", err)
+	}
+	return Monitor{
+		id:       id,
+		url:      *u,
+		timeout:  timeout,
+		interval: interval,
+	}, nil
 }

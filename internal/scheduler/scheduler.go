@@ -8,7 +8,7 @@ import (
 	"uptime/internal/monitor"
 )
 
-func RunScheduler(ctx context.Context, store *monitor.MonitorStore) {
+func RunScheduler(ctx context.Context) {
 	started := make(map[int]bool)
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
