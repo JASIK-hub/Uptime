@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"uptime/internal/infra/postgres/repository"
 	"uptime/internal/monitor"
 )
 
@@ -22,14 +21,18 @@ type monitorResponse struct {
 	IntervalSeconds int64  `json:"intervalSeconds"`
 	TimeoutSeconds  int64  `json:"timeoutSeconds"`
 }
-
-type MonitorHandler struct {
-	repository *repository.MonitorRepository
+type MonitorRepository interface {
+	List(ctx context.Context) ([]monitor.Monitor, error)
+	Add(ctx context.Context, m monitor.Monitor) (int64, error)
 }
 
-func NewMonitorHandler(r *repository.MonitorRepository) *MonitorHandler {
+type MonitorHandler struct {
+	repo MonitorRepository
+}
+
+func NewMonitorHandler(r MonitorRepository) *MonitorHandler {
 	return &MonitorHandler{
-		repository: r,
+		repo: r,
 	}
 }
 
@@ -46,13 +49,14 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	id, err := h.repository.Add(r.Context(), m)
+	id, err := h.repo.Add(r.Context(), m)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(id)
 }
 
 func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
-	monitors, err := h.repository.List(r.Context())
+	monitors, err := h.repo.List(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
