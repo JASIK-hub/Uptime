@@ -50,6 +50,10 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, err := h.repo.Add(r.Context(), m)
+	if err != nil {
+		http.Error(w, "internal database error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(id)

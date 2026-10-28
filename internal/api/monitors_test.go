@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,23 +29,69 @@ func (m *MockMonitorRepository) Add(ctx context.Context, mon monitor.Monitor) (i
 	return 0, nil
 }
 
-func TestCreateMonitor(t *testing.T) {
-	body := `{"url":"https://example.com","intervalSeconds": 10,"timeoutSeconds":5}`
-	req := httptest.NewRequest(http.MethodPost, "/monitor", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
+func TestCreateMonitorTable(t *testing.T) {
+	tt := []struct {
+		name           string
+		body           string
+		mockAddFn      func(ctx context.Context, m monitor.Monitor) (int64, error)
+		expectedStatus int
+	}{
+		{
+			name: "successfull creation",
+			body: `{"url":"https://example.com","intervalSeconds": 10,"timeoutSeconds":5}`,
+			mockAddFn: func(ctx context.Context, m monitor.Monitor) (int64, error) {
+				return 999, nil
+			},
+			expectedStatus: http.StatusCreated,
+		}, {
+			name: "Ошибка базы данных",
+			body: `{"url":"https://example.com","intervalSeconds": 10,"timeoutSeconds":5}`,
+			mockAddFn: func(ctx context.Context, m monitor.Monitor) (int64, error) {
+				return 0, errors.New("db connection lost")
 
-	mockRepo := &MockMonitorRepository{
-		AddFn: func(ctx context.Context, m monitor.Monitor) (int64, error) {
-			return 999, nil
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "Битый JSON в запросе",
+			body:           `not-a-json-string`,
+			mockAddFn:      nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid URL format",
+			body:           `{"url":"/example.com","intervalSeconds": 10,"timeoutSeconds":5}`,
+			mockAddFn:      nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "negative interval time",
+			body:           `{"url":"https://example.com","intervalSeconds": -1,"timeoutSeconds":5}`,
+			mockAddFn:      nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "negative timeout",
+			body:           `{"url":"https://example.com","intervalSeconds": 10,"timeoutSeconds":-1}`,
+			mockAddFn:      nil,
+			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
-	rec := httptest.NewRecorder()
-	handler := NewMonitorHandler(mockRepo)
-	handler.CreateMonitor(rec, req)
-	if rec.Code != http.StatusCreated {
-		t.Errorf("expected status %d, got %d", http.StatusCreated, rec.Code)
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/monitor", bytes.NewReader([]byte(tc.body)))
+			rec := httptest.NewRecorder()
+
+			handler := NewMonitorHandler(&MockMonitorRepository{AddFn: tc.mockAddFn})
+			handler.CreateMonitor(rec, req)
+
+			if rec.Code != tc.expectedStatus {
+				t.Errorf("expected status %d, got %d:", tc.expectedStatus, rec.Code)
+			}
+		})
 	}
+
 }
 
 func TestListMonitors(t *testing.T) {
