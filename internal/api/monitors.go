@@ -62,7 +62,8 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
 	monitors, err := h.repo.List(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	serialized := []monitorResponse{}
 	for id, m := range monitors {
