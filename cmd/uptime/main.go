@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +13,8 @@ import (
 	"uptime/internal/infra/postgres"
 	"uptime/internal/infra/postgres/repository"
 	"uptime/internal/scheduler"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -22,31 +24,31 @@ func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
 
 	if databaseURL == "" {
-		log.Print("startup failed: DATABASE_URL is required")
+		slog.Info("database startup failed: ", "DATABASE_URL", "required")
 		os.Exit(1)
 	}
-	schedulerDone := make(chan struct{})
+
+	g, gctx := errgroup.WithContext(ctx)
 
 	connectCtx, connectCancel := context.WithTimeout(ctx, 5*time.Second)
 	pool, err := postgres.Connect(connectCtx, databaseURL)
 	connectCancel()
 
 	if err != nil {
-		log.Printf("startup failed: %v", err)
+		slog.Info("database startup failed:", "err", err.Error())
 		os.Exit(1)
 	}
 	defer pool.Close()
-	log.Print("database connected")
+	slog.Info("database started")
 
 	repository := repository.NewMonitorRepository(pool)
 	handler := api.NewMonitorHandler(repository)
 
 	scheduler := scheduler.NewSchedule(repository)
 
-	go func() {
-		defer close(schedulerDone)
-		scheduler.Run(ctx)
-	}()
+	g.Go(func() error {
+		return scheduler.Run(ctx)
+	})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /monitor", handler.CreateMonitor)
@@ -56,32 +58,23 @@ func main() {
 		Addr:    ":8080",
 		Handler: mux,
 	}
-	serverErr := make(chan error, 1)
 
-	go func() {
-		log.Print("starting HTTP server on :8080")
-		serverErr <- server.ListenAndServe()
-	}()
+	g.Go(func() error {
+		slog.Info("starting HTTP server", "addr", ":8080")
+		return server.ListenAndServe()
+	})
 
-	select {
-	case <-ctx.Done():
-		log.Print("shutdown requested")
-	case err := <-serverErr:
-		if !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("HTTP server failed: %v", err)
-		}
-		cancel()
+	g.Go(func() error {
+		<-gctx.Done()
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		return server.Shutdown(shutdownCtx)
+	})
+
+	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		slog.Error("application stopped with error", "err", err)
+		os.Exit(1)
 	}
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-	defer shutdownCancel()
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("HTTP shutdown failed: %v, forcing close...", err)
-		if err := server.Close(); err != nil {
-			log.Printf("HTTP close failed: %v", err)
-		}
-	}
-	<-schedulerDone
-	log.Print("server stopped")
+	slog.Info("server stopped")
 }

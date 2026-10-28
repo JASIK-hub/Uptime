@@ -26,7 +26,7 @@ func NewSchedule(l Lister) *Schedule {
 	}
 }
 
-func (s *Schedule) Run(ctx context.Context) {
+func (s *Schedule) Run(ctx context.Context) error {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	var wg sync.WaitGroup
@@ -98,7 +98,7 @@ func (s *Schedule) Run(ctx context.Context) {
 			}
 			s.mu.Unlock()
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		}
 	}
 
