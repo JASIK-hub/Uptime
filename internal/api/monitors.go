@@ -66,9 +66,9 @@ func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	serialized := []monitorResponse{}
-	for id, m := range monitors {
+	for _, m := range monitors {
 		monitor := monitorResponse{
-			ID:              id,
+			ID:              int(m.ID()),
 			URL:             m.URL(),
 			TimeoutSeconds:  int64(m.Timeout() / time.Second),
 			IntervalSeconds: int64(m.Interval() / time.Second),
