@@ -96,5 +96,6 @@ func run() error {
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("run application: %w", err)
 	}
+	slog.Info("server stoped")
 	return nil
 }

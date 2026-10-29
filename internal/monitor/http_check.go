@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -26,7 +27,11 @@ func HTTPCheck(ctx context.Context, m Monitor) (CheckResult, error) {
 			StatusCode: nil,
 		}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("close response body", "err", err)
+		}
+	}()
 
 	result := CheckResult{
 		Success:    resp.StatusCode >= 200 && resp.StatusCode < 300,

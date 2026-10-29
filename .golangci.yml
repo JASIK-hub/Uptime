@@ -26,8 +26,7 @@ linters:
     - noctx
     - unused
     - goconst
-    - ineffasign
-
+    - ineffassign
 
 issues:
   uniq-by-line: true

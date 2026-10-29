@@ -80,7 +80,7 @@ func TestCreateMonitorTable(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/monitor", bytes.NewReader([]byte(tc.body)))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/monitor", bytes.NewReader([]byte(tc.body)))
 			rec := httptest.NewRecorder()
 
 			handler := NewMonitorHandler(&MockMonitorRepository{AddFn: tc.mockAddFn})
@@ -126,7 +126,7 @@ func TestListMonitorsTable(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/monitors", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/monitors", nil)
 			rec := httptest.NewRecorder()
 
 			handler := NewMonitorHandler(&MockMonitorRepository{ListFn: tc.ListFn})

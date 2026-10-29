@@ -34,7 +34,9 @@ func TestSchedule_Run_ExponentialBackoff(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		scheduler.Run(ctx)
+		if err := scheduler.Run(ctx); err != nil {
+			t.Error("scheduler error")
+		}
 	}()
 	<-done
 

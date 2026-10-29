@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 	"uptime/internal/monitor"
@@ -56,7 +57,10 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(id)
+	if err := json.NewEncoder(w).Encode(id); err != nil {
+		slog.Error("HTTP json encode fail", "error", err.Error())
+		return
+	}
 }
 
 func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +80,10 @@ func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
 		serialized = append(serialized, monitor)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(serialized)
+	if err := json.NewEncoder(w).Encode(serialized); err != nil {
+		slog.Error("HTTP json encode fail", "error", err.Error())
+		return
+	}
 }
 
 func RunMonitor(ctx context.Context, m monitor.Monitor) error {

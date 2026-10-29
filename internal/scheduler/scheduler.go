@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"log"
+	"log/slog"
 	"sync"
 	"time"
 	"uptime/internal/api"
@@ -92,7 +93,14 @@ func (s *Schedule) Run(ctx context.Context) error {
 							s.mu.Unlock()
 						}()
 
-						api.RunMonitor(wCtx, m)
+						if err := api.RunMonitor(wCtx, m); err != nil {
+							slog.Error(
+								"monitor execution failed",
+								"worker_id", workerId,
+								"monitor_id", m.ID(),
+								"error", err)
+							return
+						}
 					}(workerCtx, m, id)
 				}
 			}
