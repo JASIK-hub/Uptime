@@ -6,6 +6,8 @@ services:
         - GO_VERSION=${GO_VERSION}
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+    ports:
+      - "9000:8080"
     depends_on:
       postgres:
         condition: service_healthy
