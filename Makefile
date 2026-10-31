@@ -32,8 +32,13 @@ migrate-up:
 migrate-down:
 	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" down
 
-test-integration:
+migrate-test-up:
+	goose -dir internal/infra/postgres/migrations postgres \
+	"postgres://$$POSTGRES_TEST_USER:$$POSTGRES_TEST_PASSWORD@$$POSTGRES_TEST_HOST:$$POSTGRES_TEST_PORT/$$POSTGRES_TEST_DB?sslmode=disable" up
+
+test-integration: migrate-test-up
+	go test -race -v ./internal/infra/postgres/repository -count=1
+
+test-integration-local:
 	docker compose --profile test up -d --wait postgres-test
-	set -a; . ./.env; set +a; \
-	goose -dir internal/infra/postgres/migrations postgres "postgres://$$POSTGRES_TEST_USER:$$POSTGRES_TEST_PASSWORD@$$POSTGRES_TEST_HOST:$$POSTGRES_TEST_PORT/$$POSTGRES_TEST_DB?sslmode=disable" up && \
-	go test -v ./internal/infra/postgres/repository -count=1
+	set -a; . ./.env && set +a && $(MAKE) test-integration
