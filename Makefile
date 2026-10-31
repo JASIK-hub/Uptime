@@ -5,7 +5,7 @@ include .env
 BINARY_NAME=bin/app.exe
 MAIN_FILE=cmd/uptime/main.go
 
-.PHONY: build run clean fmt lint test
+.PHONY: build run clean fmt lint test test_integration
 
 help:
 	@echo "run    - run the application"
@@ -31,3 +31,9 @@ migrate-up:
 	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" up
 migrate-down:
 	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" down
+
+test-integration:
+	docker compose --profile test up -d --wait postgres-test
+	set -a; . ./.env; set +a; \
+	goose -dir internal/infra/postgres/migrations postgres "postgres://$$POSTGRES_TEST_USER:$$POSTGRES_TEST_PASSWORD@$$POSTGRES_TEST_HOST:$$POSTGRES_TEST_PORT/$$POSTGRES_TEST_DB?sslmode=disable" up && \
+	go test -v ./internal/infra/postgres/repository -count=1
