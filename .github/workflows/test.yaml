@@ -43,7 +43,7 @@ jobs:
         run: make test-integration
       
       - name: generate sqlc SQL code
-        run: make generate && git diff --exit-code -- internal/infra/postgres/sqlc
+        run: make generate && git diff --exit-code -- ./internal/infra/postgres/sqlc
         
       - name: Run Race Detector
         run: go test -race ./...
