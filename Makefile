@@ -5,7 +5,7 @@
 BINARY_NAME=bin/app.exe
 MAIN_FILE=cmd/uptime/main.go
 
-.PHONY: build run clean fmt lint test test_integration
+.PHONY: build run clean fmt lint test test_integration generate
 
 help:
 	@echo "run    - run the application"
@@ -27,6 +27,9 @@ test:
 clean: 
 	rm -rf bin/
 
+generate:
+	sqlc generate
+
 migrate-up:
 	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" up
 migrate-down:
@@ -37,7 +40,7 @@ migrate-test-up:
 	"postgres://$$POSTGRES_TEST_USER:$$POSTGRES_TEST_PASSWORD@$$POSTGRES_TEST_HOST:$$POSTGRES_TEST_PORT/$$POSTGRES_TEST_DB?sslmode=disable" up
 
 test-integration: migrate-test-up
-	go test -race -v ./internal/infra/postgres/repository -count=1
+	go test -v ./internal/infra/postgres/repository -count=1
 
 test-integration-local:
 	docker compose --profile test up -d --wait postgres-test

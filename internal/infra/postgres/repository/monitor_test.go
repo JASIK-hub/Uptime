@@ -34,7 +34,8 @@ func TestMonitorRepository_AddandList(t *testing.T) {
 	}
 	defer pool.Close()
 
-	if err := pool.Ping(ctx); err != nil {
+	err = pool.Ping(ctx)
+	if err != nil {
 		t.Fatalf("connect test database: %v", err)
 	}
 	r := NewMonitorRepository(pool)
@@ -60,7 +61,7 @@ func TestMonitorRepository_AddandList(t *testing.T) {
 
 		defer cancel()
 
-		_, err := pool.Exec(cleanupCtx, "DELETE FROM monitors WHERE id=$1", id)
+		_, err = pool.Exec(cleanupCtx, "DELETE FROM monitors WHERE id=$1", id)
 		if err != nil {
 			t.Errorf("cleanup monitor %d: %v", id, err)
 		}
