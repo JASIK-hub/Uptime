@@ -29,7 +29,7 @@ func (q *Queries) AddMonitor(ctx context.Context, arg AddMonitorParams) (int64, 
 }
 
 const listMonitors = `-- name: ListMonitors :many
-Select id, url, timeout_seconds, interval_seconds
+SELECT id, url, timeout_seconds, interval_seconds
 FROM monitors
 ORDER BY id
 `
