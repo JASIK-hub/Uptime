@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"time"
@@ -83,33 +82,5 @@ func (h *MonitorHandler) ListMonitors(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(serialized); err != nil {
 		slog.Error("HTTP json encode fail", "error", err.Error())
 		return
-	}
-}
-
-func RunMonitor(ctx context.Context, m monitor.Monitor) error {
-	check := func() {
-		c, err := monitor.HTTPCheck(ctx, m)
-		if err != nil {
-			log.Printf("check %s failed: %v", m.URL(), err)
-			return
-		}
-		log.Printf("check %s: success=%t, duration=%v",
-			m.URL(), c.Success, c.Duration)
-	}
-	ticker := time.NewTicker(m.Interval())
-	defer ticker.Stop()
-
-	check()
-
-	for {
-		select {
-		case <-ticker.C:
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			check()
-		case <-ctx.Done():
-			return ctx.Err()
-		}
 	}
 }
