@@ -16,7 +16,7 @@ type Schedule struct {
 	lister    Lister
 	running   map[int64]bool
 	nextCheck map[int64]time.Time
-	mu        sync.Mutex
+	check     func(context.Context, monitor.Monitor)
 }
 
 type checkFinished struct {
@@ -28,6 +28,7 @@ type checkFinished struct {
 func NewSchedule(l Lister) *Schedule {
 	return &Schedule{
 		lister:    l,
+		check:     executeCheck,
 		nextCheck: make(map[int64]time.Time),
 		running:   make(map[int64]bool),
 	}
@@ -82,7 +83,7 @@ func (s *Schedule) Run(ctx context.Context) error {
 					if ctx.Err() != nil {
 						return
 					}
-					executeCheck(ctx, m)
+					s.check(ctx, m)
 
 					select {
 					case finished <- checkFinished{
@@ -97,6 +98,7 @@ func (s *Schedule) Run(ctx context.Context) error {
 			}
 		}()
 	}
+	defer wg.Wait()
 
 	currentDelay := time.Second
 	baseDelay := time.Second
@@ -133,14 +135,14 @@ func (s *Schedule) Run(ctx context.Context) error {
 				select {
 				case jobs <- m:
 					s.running[id] = true
-					s.nextCheck[id] = time.Now().Add(m.Interval())
 				case <-ctx.Done():
 					return ctx.Err()
+				default:
 				}
 			}
 		case done := <-finished:
 			s.running[done.monitorId] = false
-			s.nextCheck[done.monitorId] = time.Now().Add(done.interval)
+			s.nextCheck[done.monitorId] = done.finishedAt.Add(done.interval)
 
 		case <-ctx.Done():
 			return ctx.Err()
