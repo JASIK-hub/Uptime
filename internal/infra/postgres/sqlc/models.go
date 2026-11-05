@@ -15,3 +15,13 @@ type Monitor struct {
 	IntervalSeconds int32
 	CreatedAt       pgtype.Timestamptz
 }
+
+type MonitorsHistory struct {
+	ID           int64
+	MonitorID    int64
+	DurationMs   pgtype.Int4
+	StartedAt    pgtype.Timestamptz
+	Success      bool
+	StatusCode   pgtype.Int4
+	ErrorMessage pgtype.Text
+}
