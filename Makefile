@@ -5,7 +5,7 @@
 BINARY_NAME=bin/app.exe
 MAIN_FILE=cmd/uptime/main.go
 
-.PHONY: build run clean fmt lint test test_integration generate
+.PHONY: build run clean fmt lint test test_integration generate migrate-create
 
 help:
 	@echo "run    - run the application"
@@ -34,6 +34,9 @@ migrate-up:
 	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" up
 migrate-down:
 	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" down
+
+migrate-create:
+	goose -dir internal/infra/postgres/migrations postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" create $(name) sql
 
 migrate-test-up:
 	goose -dir internal/infra/postgres/migrations postgres \
