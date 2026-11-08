@@ -50,7 +50,7 @@ func run() error {
 	repository := repository.NewMonitorRepository(pool)
 	handler := api.NewMonitorHandler(repository)
 
-	scheduler := scheduler.NewSchedule(repository)
+	scheduler := scheduler.NewSchedule(repository, repository)
 
 	g.Go(func() error {
 		err := scheduler.Run(gctx)

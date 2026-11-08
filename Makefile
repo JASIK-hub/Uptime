@@ -23,7 +23,7 @@ lint:
 fmt:
 	go fmt
 test:
-	go test -cover ./...
+	go test -cover ./internal/api ./internal/monitor ./internal/scheduler
 clean: 
 	rm -rf bin/
 

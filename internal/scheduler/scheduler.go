@@ -11,10 +11,14 @@ import (
 type Lister interface {
 	List(ctx context.Context) ([]monitor.Monitor, error)
 }
+type CheckSaver interface {
+	SaveCheck(ctx context.Context, monitorId int64, result monitor.CheckResult, errMsg error) error
+}
 
 type Schedule struct {
 	lister    Lister
 	running   map[int64]bool
+	history   CheckSaver
 	nextCheck map[int64]time.Time
 	check     func(context.Context, monitor.Monitor)
 }
@@ -25,42 +29,36 @@ type checkFinished struct {
 	interval   time.Duration
 }
 
-func NewSchedule(l Lister) *Schedule {
-	return &Schedule{
+func NewSchedule(l Lister, history CheckSaver) *Schedule {
+	s := &Schedule{
 		lister:    l,
-		check:     executeCheck,
+		history:   history,
 		nextCheck: make(map[int64]time.Time),
 		running:   make(map[int64]bool),
 	}
+	s.check = s.executeCheck
+	return s
 }
 
-func RunMonitor(ctx context.Context, m monitor.Monitor) error {
-	ticker := time.NewTicker(m.Interval())
-	defer ticker.Stop()
-
-	executeCheck(ctx, m)
-
-	for {
-		select {
-		case <-ticker.C:
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			executeCheck(ctx, m)
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-}
-
-func executeCheck(ctx context.Context, m monitor.Monitor) {
-	c, err := monitor.HTTPCheck(ctx, m)
-	if err != nil {
-		log.Printf("check %s failed: %v", m.URL(), err)
+func (s *Schedule) executeCheck(ctx context.Context, m monitor.Monitor) {
+	check, checkErr := monitor.HTTPCheck(ctx, m)
+	if ctx.Err() != nil {
 		return
 	}
+	if checkErr != nil {
+		log.Printf("check %s failed: %v", m.URL(), checkErr)
+	} else {
+		log.Printf("check %s: success=%t, duration=%v",
+			m.URL(), check.Success, check.Duration)
+	}
+
+	saveCtx, saveCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer saveCancel()
+	if err := s.history.SaveCheck(saveCtx, m.ID(), check, checkErr); err != nil {
+		log.Printf("save check for monitor %d: %v", m.ID(), err)
+	}
 	log.Printf("check %s: success=%t, duration=%v",
-		m.URL(), c.Success, c.Duration)
+		m.URL(), check.Success, check.Duration)
 }
 
 func (s *Schedule) Run(ctx context.Context) error {

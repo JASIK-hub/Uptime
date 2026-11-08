@@ -18,8 +18,13 @@ func (r *MonitorRepository) SaveCheck(
 	errMsg error,
 ) error {
 	ms := result.Duration.Milliseconds()
+	code := *result.StatusCode
 	if ms < 0 || ms > math.MaxInt32 {
 		return fmt.Errorf("check duration out of range: %d ms", ms)
+	}
+
+	if code < 100 || code > 599 {
+		return fmt.Errorf("invalid HTTP status code: %d", code)
 	}
 
 	params := db.AddMonitorCheckParams{
@@ -36,7 +41,7 @@ func (r *MonitorRepository) SaveCheck(
 	}
 	if result.StatusCode != nil {
 		params.StatusCode = pgtype.Int4{
-			Int32: int32(*result.StatusCode),
+			Int32: int32(code),
 			Valid: true,
 		}
 	}

@@ -11,34 +11,45 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func TestMonitorRepository_AddandList(t *testing.T) {
+func newPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
 	config, err := pgxpool.ParseConfig("sslmode=disable")
 	if err != nil {
 		t.Fatalf("parse database config: %v", err)
 	}
 	port, err := strconv.ParseUint(os.Getenv("POSTGRES_TEST_PORT"), 10, 16)
+
 	if err != nil || port == 0 {
 		t.Fatalf("POSTGRES_TEST_PORT must be a valid non-zero port")
 	}
+
 	config.ConnConfig.Host = os.Getenv("POSTGRES_TEST_HOST")
 	config.ConnConfig.Port = uint16(port)
-	config.ConnConfig.User = os.Getenv("POSTGRES_TEST_USER")
-	config.ConnConfig.Password = os.Getenv("POSTGRES_TEST_PASSWORD")
 	config.ConnConfig.Database = os.Getenv("POSTGRES_TEST_DB")
+	config.ConnConfig.Password = os.Getenv("POSTGRES_TEST_PASSWORD")
+	config.ConnConfig.User = os.Getenv("POSTGRES_TEST_USER")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		t.Fatalf("create pool: %v", err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close)
 
-	err = pool.Ping(ctx)
-	if err != nil {
-		t.Fatalf("connect test database: %v", err)
+	if err := pool.Ping(ctx); err != nil {
+		t.Fatalf("create pool: %v", err)
 	}
+	return pool
+}
+
+func TestMonitorRepository_AddandList(t *testing.T) {
+	pool := newPool(t)
 	r := NewMonitorRepository(pool)
+
+	ctx, cancelErr := context.WithCancel(context.Background())
+	defer cancelErr()
 
 	m, err := monitor.NewMonitor(
 		"https://example.com/health",

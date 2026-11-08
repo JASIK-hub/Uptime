@@ -12,8 +12,10 @@ import (
 type MockLister struct {
 	Monitor   []monitor.Monitor
 	callcount int
-	check     func(context.Context, monitor.Monitor)
 	mockErr   error
+}
+
+type MockMonitorRepository struct {
 }
 
 func (m *MockLister) List(ctx context.Context) ([]monitor.Monitor, error) {
@@ -24,11 +26,16 @@ func (m *MockLister) List(ctx context.Context) ([]monitor.Monitor, error) {
 	return m.Monitor, nil
 }
 
+func (r MockMonitorRepository) SaveCheck(ctx context.Context, monitorId int64, result monitor.CheckResult, errMsg error) error {
+	return nil
+}
+
 func TestSchedule_Run_ExponentialBackoff(t *testing.T) {
 	mockErr := errors.New("database connection failed")
 	mockLister := &MockLister{mockErr: mockErr}
+	mockMonitorRepository := MockMonitorRepository{}
 
-	scheduler := NewSchedule(mockLister)
+	scheduler := NewSchedule(mockLister, mockMonitorRepository)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
 	defer cancel()
@@ -60,6 +67,7 @@ func TestSchedule_Run_Cancel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restore monitor: %v", err)
 	}
+	mockMonitorRepository := MockMonitorRepository{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -70,7 +78,7 @@ func TestSchedule_Run_Cancel(t *testing.T) {
 
 	s := NewSchedule(&MockLister{
 		Monitor: []monitor.Monitor{m},
-	})
+	}, mockMonitorRepository)
 
 	s.check = func(ctx context.Context, m monitor.Monitor) {
 		close(started)
@@ -123,9 +131,10 @@ func TestSchedule_Run_MonitorLimit(t *testing.T) {
 		monitors = append(monitors, m)
 	}
 
+	mockMonitorRepository := MockMonitorRepository{}
 	s := NewSchedule(&MockLister{
 		Monitor: monitors,
-	})
+	}, mockMonitorRepository)
 
 	started := make(chan int64, 11)
 	result := make(chan error, 1)
@@ -208,9 +217,12 @@ func TestSchedule_Run_MonitorInterval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("montor initialise error: %v", err)
 	}
+
+	mockMonitorRepository := MockMonitorRepository{}
 	s := NewSchedule(&MockLister{
 		Monitor: []monitor.Monitor{m},
-	})
+	}, mockMonitorRepository)
+
 	var first, second time.Time
 	started := make(chan time.Time, 10)
 	s.check = func(ctx context.Context, m monitor.Monitor) {
