@@ -19,7 +19,7 @@ type Monitor struct {
 type MonitorsHistory struct {
 	ID           int64
 	MonitorID    int64
-	DurationMs   pgtype.Int4
+	DurationMs   int32
 	StartedAt    pgtype.Timestamptz
 	Success      bool
 	StatusCode   pgtype.Int4

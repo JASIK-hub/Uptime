@@ -25,7 +25,7 @@ VALUES ($1, $2, $3, $4, $5, $6)
 
 type AddMonitorCheckParams struct {
 	MonitorID    int64
-	DurationMs   pgtype.Int4
+	DurationMs   int32
 	StartedAt    pgtype.Timestamptz
 	Success      bool
 	StatusCode   pgtype.Int4
