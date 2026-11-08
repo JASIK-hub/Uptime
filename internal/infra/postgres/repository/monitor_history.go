@@ -28,11 +28,8 @@ func (r *MonitorRepository) SaveCheck(
 	}
 
 	params := db.AddMonitorCheckParams{
-		MonitorID: monitorId,
-		DurationMs: pgtype.Int4{
-			Int32: int32(ms),
-			Valid: true,
-		},
+		MonitorID:  monitorId,
+		DurationMs: int32(ms),
 		StartedAt: pgtype.Timestamptz{
 			Time:  result.StartTime,
 			Valid: true,
